@@ -73,6 +73,8 @@ spec:
       name: msg-volume
 ```
 
+## Monitoring
+
 ### Readiness & Livenes probes
 
 Once created you must make sure a given POD is ready to receive requests (in case it's exposed via a service). Whithout a readiness probe kubernetes assumes that every POD is ready, this is going to avoid users to reach out a unresponsiveness POD.
@@ -190,7 +192,58 @@ spec:
  
 ```
 
-### Monitoring
+## Labels and Selectors
+
+Use to categorize/classify different groups and objects in Kubernetes. They are very useful whenever we wanty to make a decision over a group of objects.
+A ggod example is the usage of labels alongside replica sets:
+
+```yaml
+apiVersion: v1
+kind: ReplicaSet
+metadata: 
+  name: myapp
+  #Replica set labels
+  labels:
+    group: backend 
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      group: backend # this label value has to match with the one on template.metadata.lables.group
+  template:
+    metadata:
+      #Those are the labels configured on the POD
+      labels:
+        group: backend
+  containers:
+  - name: myapp
+    image: myappcontainer
+    ports:
+      - containerPort: 8080    
+ 
+```
+
+The following comamnd can be used to get all POD names using a given label
+
+```shell
+kubectl get pods --selector=labelName=labelValue -o jsonpath='{.items[*].metadata.name}
+```
+
+OR
+
+```shell
+kubectl get pods -l labelName=labelValue --no-headers
+```
+
+
+
+The following comamnd can be used to filter several labels (AND operator logic)
+
+```shell
+kubectl get pod --selector=group=backend --selector=owner=human-resources --selector=env=staging
+```
+
+
 
 
 
