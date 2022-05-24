@@ -73,9 +73,11 @@ spec:
       name: msg-volume
 ```
 
-### Readiness probe
+### Readiness & Livenes probes
 
-Once created uyou must make sure a given POD is ready to receive requests (in case it's exposed via a service). Whithout a readiness probe kubernetes assumes that every POD is ready, this is going to avoid users to reach out a unresponsiveness POD 
+Once created you must make sure a given POD is ready to receive requests (in case it's exposed via a service). Whithout a readiness probe kubernetes assumes that every POD is ready, this is going to avoid users to reach out a unresponsiveness POD.
+
+The liveness probe ensures the container is staill alive and healthy in runtime.
 
 ```yaml
 apiVersion: v1
@@ -93,7 +95,19 @@ spec:
     readinesProbe:
       httpGet:
         path: /api/health
-        port: 8080      
+        port: 8080
+      initialDelaySeconds: 20 
+      periodSeconds: 5
+      failureThreshold: 8
+
+    livenessProbe:
+      httpGet:
+        path: /api/health
+        port: 8080
+      initialDelaySeconds: 20 
+      periodSeconds: 5
+      failureThreshold: 8
+      
 ```
 
 Other ways to do a readiness probe:
@@ -111,6 +125,11 @@ spec:
     readinesProbe:
       tcpSocket:
         port: 3306
+
+    livenessProbe:
+      tcpSocket:
+        port: 3306
+
 ```
 
 ```yaml
@@ -128,8 +147,6 @@ spec:
         - cat
         - /myapp/isHealthy
 ```
-
-
 
 ### Multi container PODs
 
@@ -172,6 +189,8 @@ spec:
     image: mylogImag
  
 ```
+
+### Monitoring
 
 
 
