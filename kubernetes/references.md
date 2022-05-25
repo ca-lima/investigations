@@ -243,6 +243,56 @@ The following comamnd can be used to filter several labels (AND operator logic)
 kubectl get pod --selector=group=backend --selector=owner=human-resources --selector=env=staging
 ```
 
+## Deployments
+
+### Creating from command line 
+
+```shell
+kubectl create deployment nginx --image=nginx:1.16
+```
+
+### Creating from file 
+
+```yaml
+apiVersion: apps/v1 # chck always the api version for deployment, which is apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx # must match on with is within spec.selector.matchLabels.app value
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80
+```
+
+### Rollout 
+
+This is a very powerful way to ensure zero downtime updates (by default tha's the way a Deployment object is created):
+The follwoing are useful commands to cehck rollout progress when a deplopyment is changed:
+
+```shell
+#check rollout status
+kubectl rollout status deployment/deploymentName
+
+#check rollout history
+kubectl rollout history deployment/deploymentName --revision={1, 2, 3...} # -- revision is optinal and shows the status of ach revision
+
+#rollback a rollout 
+kubectl rollout undo deployment/deploymentName
+
+```
 
 
 
