@@ -150,7 +150,7 @@ spec:
         - /myapp/isHealthy
 ```
 
-### Multi container PODs
+## Multi container PODs
 
 PODs that share the same lifecycle:
  - Cresated together
@@ -254,7 +254,7 @@ kubectl create deployment nginx --image=nginx:1.16
 ### Creating from file 
 
 ```yaml
-apiVersion: apps/v1 # chck always the api version for deployment, which is apps/v1
+apiVersion: apps/v1 # check always the api version for deployment, which is apps/v1
 kind: Deployment
 metadata:
   name: nginx-deployment
@@ -276,6 +276,45 @@ spec:
         ports:
         - containerPort: 80
 ```
+More complete deployment example:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+  namespace: backend
+spec:
+  minReadySeconds: 20
+  progressDeadlineSeconds: 600
+  replicas: 4
+  selector:
+    matchLabels:
+      name: webapp-backend
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        name: webapp-backend
+    spec:
+      containers:
+      - image: my-backend-image:latest
+        imagePullPolicy: IfNotPresent
+        name: go-backend
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        terminationMessagePath: /var/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+```
+
 
 ### Rollout 
 
@@ -293,6 +332,67 @@ kubectl rollout history deployment/deploymentName --revision={1, 2, 3...} # -- r
 kubectl rollout undo deployment/deploymentName
 
 ```
+## Jobs and Cron jobs
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: myjob  
+spec:
+  template:
+    spec:
+      containers:
+      - name: my-job
+        image: my-job-image
+      restartPolicy: Never
+```
+A cron job every day 10:30 
+
+```yaml
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: throw-dice-cron-job
+spec:
+  schedule: "30 10 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+           - name: my-job
+             image: my-job-image
+          restartPolicy: Never
+```
+
+## Services
+
+Kubernetes services allow communication among different components inside and outside of a K8S applicaiton.
+Services help to connect deployed kubernetes with other external apps and users.
+
+Those are the service types provided by kubernetes:
+
+
+                                             ┌► x ◄┐
+  
+                                          │  ▲  │
+           ┌──┐
+                             │  │  │
+     ┌─────┼┼┼┼─────┐
+   ┌────────────┐   ┌──x──x──x───┐
+     │     └──┘     │
+   │            │   │            │
+     │              │
+   │     xx     │   │            │
+     │              │
+   │     xx     │   │            │
+     │              │
+   │            │   │            │
+     └──────────────┘
+   └────────────┘   └────────────┘
+  
+     NODE PORT          Cluster IP      Load Balancer
 
 
 
