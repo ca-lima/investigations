@@ -1,3 +1,11 @@
+## Some basic commands
+
+```shell
+# get a given resource form all namespaces
+kubectl get {pods | deployments | services | ingress | ...}  --all-namespaces
+```
+
+
 ## Working with Pods
 
 ### Creating Pods
@@ -25,7 +33,6 @@ spec:
         - name: web
           containerPort: 8080
           protocol: TCP
-
 ```
 
 ### Extracting Pods information
@@ -373,27 +380,72 @@ Services help to connect deployed kubernetes with other external apps and users.
 
 Those are the service types provided by kubernetes:
 
+### Node Port
 
-                                             ┌► x ◄┐
-  
-                                          │  ▲  │
-           ┌──┐
-                             │  │  │
-     ┌─────┼┼┼┼─────┐
-   ┌────────────┐   ┌──x──x──x───┐
-     │     └──┘     │
-   │            │   │            │
-     │              │
-   │     xx     │   │            │
-     │              │
-   │     xx     │   │            │
-     │              │
-   │            │   │            │
-     └──────────────┘
-   └────────────┘   └────────────┘
-  
-     NODE PORT          Cluster IP      Load Balancer
+Maps a port from the node to a port on the POD. By default the allowed ports are in the range of 30000 to 32767. Below an yaml example of a NodePort type service:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata: 
+  name: myapp
+spec:
+  type: NodePort
+  ports:
+    targetPort: 80
+    port: 80
+    nodePort: 30002
+  selector:
+    ## use the labels used on the POD to make the connection to the respective service
+ 
+```
+
+> IMPORTANT: NodePort type exposes a direct connection to a POD. Be VERY careful with such configuration as it is not the most secure one.
+
+Cluster IP
+Load Balancer
 
 
+## Ingress
 
+Ingress exposes HTTP and HTTPS routes from outside the cluster to services within the cluster. 
+Traffic routing is controlled by rules defined on the Ingress resource (source [here](https://kubernetes.io/docs/concepts/services-networking/ingress/)).
 
+```yaml
+apiVersion: v1
+items:
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+      nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    generation: 1
+    name: ingress-ecommerce-app
+    namespace: ecommerce
+  spec:
+    rules:
+    - http:
+        paths:
+        - backend:
+            service:
+              name: book-store-service
+              port:
+                number: 8080
+          path: /books
+          pathType: Prefix
+        - backend:
+            service:
+              name: wear-store-service
+              port:
+                number: 8080
+          path: /wear
+          pathType: Prefix
+        - backend:
+            service:
+              name: payment-service
+              port:
+                number: 8080
+          path: /payment
+          pathType: Prefix         
+```
