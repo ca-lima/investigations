@@ -400,6 +400,23 @@ spec:
  
 ```
 
+```yaml
+apiVersion: v1
+kind: Service
+metadata: 
+  name: ingress
+  namespace: ingress-space
+spec:
+  type: NodePort
+  ports:
+    - name: service-ports
+      targetPort: 80
+      port: 80
+      nodePort: 30080
+  selector:
+    name: nginx-ingress
+```
+
 > IMPORTANT: NodePort type exposes a direct connection to a POD. Be VERY careful with such configuration as it is not the most secure one.
 
 Cluster IP
@@ -448,4 +465,127 @@ items:
                 number: 8080
           path: /payment
           pathType: Prefix         
+```
+### Ingress config steps
+
+```shell
+## create the namespace for the ingress resource
+kubectl create namespace ingress-ns
+
+## create the configmap to host the configuration for the ingress resource
+kubectl -n ingress-ns create configmap nginx-configuration
+
+## create the service account
+kubectl -n ingress-ns create serviceaccount ingress-serviceaccount
+
+## Make the necessary role bindings assignments 
+//see the yamls below and apply them in the sequence: Role ==> RoleBinding ==> Ingress Controller
+
+``` 
+
+Role YAML:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+  name: ingress-role
+  namespace: ingress-ns
+rules:
+  - apiGroups:
+    - ""
+    resources:
+    - configmaps
+    - pods
+    - secrets
+    - namespaces
+    verbs:
+    - get
+  - apiGroups:
+    - ""
+    resourceNames:
+    - ingress-controller-leader-nginx
+    resources:
+    - configmaps
+    verbs:
+    - get
+    - update
+  - apiGroups:
+    - ""
+    resources:
+    - configmaps
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    resources:
+    - endpoints
+    verbs:
+    - get
+```
+
+Role binding YAML
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx  
+  name: ingress-role-binding
+  namespace: ingress-ns
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ingress-role
+subjects:
+- kind: ServiceAccount
+  name: ingress-serviceaccount
+```
+
+The Ingress Controller yaml:
+
+```yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingress-controller
+  namespace: ingress-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: nginx-ingress
+  template:
+    metadata:
+      labels:
+        name: nginx-ingress
+    spec:
+      serviceAccountName: ingress-serviceaccount
+      containers:
+        - name: nginx-ingress-controller
+          image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.21.0
+          args:
+            - /nginx-ingress-controller
+            - --configmap=$(POD_NAMESPACE)/nginx-configuration
+            - --default-backend-service=app-space/default-http-backend
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          ports:
+            - name: http
+              containerPort: 80
+            - name: https
+              containerPort: 443
 ```
