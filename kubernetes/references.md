@@ -479,7 +479,7 @@ kubectl -n ingress-ns create configmap nginx-configuration
 kubectl -n ingress-ns create serviceaccount ingress-serviceaccount
 
 ## Make the necessary role bindings assignments 
-//see the yamls below and apply them in the sequence: Role ==> RoleBinding ==> Ingress Controller
+//see the yamls below and apply them in the sequence: Role ==> RoleBinding ==> Ingress Controller ==> Ingress Resource
 
 ``` 
 
@@ -588,4 +588,66 @@ spec:
               containerPort: 80
             - name: https
               containerPort: 443
+```
+The ingress resource:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  generation: 1
+  name: ingress-app-space
+  namespace: app-space
+spec:
+    rules:
+    - http:
+        paths:
+        - backend:
+            service:
+              name: service1
+              port:
+                number: 8080
+          path: /service1
+          pathType: Prefix
+        - backend:
+            service:
+              name: service2
+              port:
+                number: 8080
+          path: /service2
+          pathType: Prefix
+```
+## Networking & Policies
+
+Imagine the follwoing scenario:
+
+ - An API Pod has to make requests to a DB Pod
+ - The DB pod must ensure that only incoming traffic from the API pod is allowed
+
+The usage of Network Policies is quite useful on this scenario, where a resource can be created to make the proper traffic filtering accordingly.
+See the example below:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: test-network-policy
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      #The DB Pod must be labeled with 'role:db' in order to get the network policies defined being applied
+      role: db 
+  policyTypes:
+    - Ingress    
+  - from:
+      - namespaceSelector:
+          matchLabels:
+            name: api-namespace
+        podSelector:
+          matchLabels:
+            role: api-pod
 ```
