@@ -11,6 +11,12 @@ This is to be used for my internal consumption and for reference when I need to 
 aws autoscaling complete-lifecycle-action --lifecycle-action-result CONTINUE --instance-id <id> --lifecycle-hook-name <InstanceTerminateHook|InstanceLaunchHook> --auto-scaling-group-name <lima-dev-AutoScalingGroup-1GJX181NW78AT>
 ```
 
+Using Ec2 instance connect to make ssh tunneling
+```
+pip3 install ec2instanceconnectcli
+mssh -f -N -L 5435:<rds endpoint>:5432 <bastion instanceId> -v
+```
+
 ### STS
 
 #### Decode mesasge
@@ -63,6 +69,27 @@ Create a  ClusterIP service and expose pod redis on port 6379
 kubectl create service clusterip redis --tcp=6379:6379 --dry-run=client -o yaml
 ```
 
+### Helm
+
+Helm diff (needs to install hel diff plugin)
+```
+helm diff upgrade <service> . -f <values filename>.yaml
+```
+
+Helm diff (traaefik example)
+```
+helm diff upgrade --allow-unreleased -n kube-system traefik traefik/traefik -f values.yaml -f <other values filename>.yaml
+```
+
+Helm install
+```
+helm upgrade --install <service> . -f values.yaml
+```
 
 
+### Postgres
 
+Add owner to a table
+```
+ALTER TABLE policy OWNER TO policyservice;
+```
